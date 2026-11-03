@@ -317,33 +317,53 @@ document.addEventListener("DOMContentLoaded", async () => {
             `)
             .eq("activo", true);
 
-        if (!error && productosSupabase) {
-            PRODUCTOS = productosSupabase.map(p => {
-                const nombreCat = p.categorias?.nombre || "";
-                const catNormalizada = nombreCat
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .toLowerCase()
-                    .trim();
-
-                return {
-                    id: String(p.id),
-                    nombre: p.nombre || "",
-                    descripcion: p.descripcion || "",
-                    precio: Number(p.precio_venta) || 0,
-                    disponible: Number(p.existencias) > 0 ? "Disponible" : "Agotado",
-                    imagen: p.imagen_url || "",
-                    categoria: catNormalizada,
-                    categoriaId: p.categoria_id,
-                    novedad: Boolean(p.es_novedad),
-                    destacado: Boolean(p.es_destacado),
-                    oferta: Boolean(p.en_oferta),
-                    activo: Boolean(p.activo)
-                };
-            });
+        // Detectar errores de Supabase
+        if (error) {
+            throw error;
         }
+
+        PRODUCTOS = (productosSupabase || []).map(p => {
+            const nombreCat = p.categorias?.nombre || "";
+
+            const catNormalizada = nombreCat
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase()
+                .trim();
+
+            return {
+                id: String(p.id),
+                nombre: p.nombre || "",
+                descripcion: p.descripcion || "",
+                precio: Number(p.precio_venta) || 0,
+                disponible: Number(p.existencias) > 0
+                    ? "Disponible"
+                    : "Agotado",
+                imagen: p.imagen_url || "",
+                categoria: catNormalizada,
+                categoriaId: p.categoria_id,
+                novedad: Boolean(p.es_novedad),
+                destacado: Boolean(p.es_destacado),
+                oferta: Boolean(p.en_oferta),
+                activo: Boolean(p.activo)
+            };
+        });
+
     } catch (err) {
         console.error("Error al conectar con Supabase:", err);
+
+        const galeria = document.getElementById("galeria-productos");
+
+        if (galeria) {
+            galeria.innerHTML = `
+                <p class="vacio">
+                    No pudimos cargar los productos.
+                    Por favor, intenta nuevamente.
+                </p>
+            `;
+        }
+
+        return;
     }
 
     const categoriaPagina = document.body.dataset.categoria;
